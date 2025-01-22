@@ -104,7 +104,7 @@ Description=ABC News Just-in RSS Feed Creator
 
 [Service]
 Type=oneshot
-ExecStart=$HOME/go/bin/abcjustinrss -output ${HOME}/public_html/rss/abcjustinrss.xml
+ExecStart=%h/go/bin/abcjustinrss -output %h/public_html/rss/abcjustinrss.xml
 ```
 
 Remember to modify $HOME with the correct value and `go/bin` too if you're using a custom go env location
