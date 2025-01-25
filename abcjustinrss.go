@@ -120,9 +120,9 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 	// Find articles by inspecting the HTML structure
 	for i, s := range doc.Find("article").EachIter() {
 		// Extract title and link
-		title := strings.TrimSpace(s.Find("a").Text())
-		description := strings.TrimSpace(s.Find("p").Text())
-		link, exists := s.Find("a").Attr("href")
+		title := strings.TrimSpace(s.Find("h3 a").Text())
+		description := strings.TrimSpace(s.Find("div[data-component=\"Typography\"]").Text())
+		link, exists := s.Find("a[data-component=\"Link\"]").Attr("href")
 		if !exists || !IsArticleLink(link) {
 			continue
 		}
