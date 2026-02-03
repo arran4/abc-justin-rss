@@ -19,7 +19,7 @@ Grab the latest binary here, deb, rpm, etc: https://github.com/arran4/abc-justin
 
 #### Install and build as user (User)
 
-Install go 1.23+
+Install go 1.24+
 
 Run `go install`:
 ```bash
