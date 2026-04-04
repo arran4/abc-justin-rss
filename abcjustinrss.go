@@ -35,6 +35,7 @@ type Item struct {
 	Description string `xml:"description"`
 	PubDate     string `xml:"pubDate"`
 	GUID        string `xml:"guid"`
+	Category    string `xml:"category,omitempty"`
 }
 
 const BaseURL = "https://www.abc.net.au"
@@ -136,6 +137,11 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 			return fmt.Errorf("parsing news to rss: %d %s: %v", i, s.Text(), err), RSS{}
 		}
 
+		// Extract category tag
+		category := strings.TrimSpace(s.Find("span[class*=\"CardTag_container__\"] p").Text())
+		category = strings.ReplaceAll(category, "Topic:", "")
+		category = strings.TrimSpace(category)
+
 		// Add article to RSS items
 		items = append(items, Item{
 			Title:       title,
@@ -143,6 +149,7 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 			Description: description,
 			PubDate:     pubDate,
 			GUID:        linkUrl.String(),
+			Category:    category,
 		})
 	}
 
