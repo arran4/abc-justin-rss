@@ -29,7 +29,7 @@ func main() {
 	flag.Func("o", "Output file", setOutputFile)
 	flag.Func("output", "Output file", setOutputFile)
 	flag.Parse()
-	err, rss := abcjustinrss.FetchAndParseNewsToRSS()
+	rss, err := abcjustinrss.FetchAndParseNewsToRSS()
 	if err != nil {
 		log.Fatal("Failed to fetch and parse new rss: ", err)
 	}
