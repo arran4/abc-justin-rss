@@ -90,10 +90,10 @@ func unitToDuration(unit string) string {
 	}
 }
 
-func FetchAndParseNewsToRSS() (error, RSS) {
+func FetchAndParseNewsToRSS() (RSS, error) {
 	resp, err := http.Get(JustInURL)
 	if err != nil {
-		return fmt.Errorf("fetching news to rss: %v", err), RSS{}
+		return RSS{}, fmt.Errorf("fetching news to rss: %v", err)
 	}
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -103,19 +103,19 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("status code: %v", resp.Status), RSS{}
+		return RSS{}, fmt.Errorf("status code: %v", resp.Status)
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		return fmt.Errorf("parsing news to rss: %v", err), RSS{}
+		return RSS{}, fmt.Errorf("parsing news to rss: %v", err)
 	}
 
 	var items []Item
 
 	baseUrl, err := url.Parse(JustInURL)
 	if err != nil {
-		return fmt.Errorf("parsing news to rss: %v", err), RSS{}
+		return RSS{}, fmt.Errorf("parsing news to rss: %v", err)
 	}
 
 	// Find articles by inspecting the HTML structure
@@ -134,7 +134,7 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 
 		linkUrl, err := baseUrl.Parse(link)
 		if err != nil {
-			return fmt.Errorf("parsing news to rss: %d %s: %v", i, s.Text(), err), RSS{}
+			return RSS{}, fmt.Errorf("parsing news to rss: %d %s: %v", i, s.Text(), err)
 		}
 
 		// Extract category tag
@@ -163,5 +163,5 @@ func FetchAndParseNewsToRSS() (error, RSS) {
 			Items:       items,
 		},
 	}
-	return err, rss
+	return rss, nil
 }
