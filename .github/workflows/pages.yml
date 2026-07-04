@@ -1,0 +1,61 @@
+name: Generate RSS and Publish to Pages
+
+on:
+  schedule:
+    # 8-9 PM AEST is 10-11 AM UTC. 10:30 AM UTC -> 8:30 PM AEST
+    - cron: '30 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build abcjustinrss
+        run: go build -o abcjustinrss ./cmd/abcjustinrss
+
+      - name: Create output directory
+        run: mkdir -p public
+
+      - name: Generate RSS
+        run: ./abcjustinrss -output public/abcjustinrss.xml
+
+      - name: Convert Markdown to HTML
+        run: |
+          npx marked readme.md > public/index.html
+          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ABC Just In RSS</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' > temp.html
+          cat public/index.html >> temp.html
+          echo '</body></html>' >> temp.html
+          mv temp.html public/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: generate
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
