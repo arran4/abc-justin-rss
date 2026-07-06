@@ -30,12 +30,12 @@ type Channel struct {
 
 // Item represents an RSS feed item.
 type Item struct {
-	Title       string `xml:"title"`
-	Link        string `xml:"link"`
-	Description string `xml:"description"`
-	PubDate     string `xml:"pubDate"`
-	GUID        string `xml:"guid"`
-	Category    string `xml:"category,omitempty"`
+	Title       string   `xml:"title"`
+	Link        string   `xml:"link"`
+	Description string   `xml:"description"`
+	PubDate     string   `xml:"pubDate"`
+	GUID        string   `xml:"guid"`
+	Categories  []string `xml:"category,omitempty"`
 }
 
 const BaseURL = "https://www.abc.net.au"
@@ -137,10 +137,18 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 			return RSS{}, fmt.Errorf("parsing news to rss: %d %s: %v", i, s.Text(), err)
 		}
 
-		// Extract category tag
-		category := strings.TrimSpace(s.Find("span[class*=\"CardTag_container__\"] p").Text())
-		category = strings.ReplaceAll(category, "Topic:", "")
-		category = strings.TrimSpace(category)
+		// Extract category tags
+		var categories []string
+		seenCategories := make(map[string]bool)
+		s.Find("a[data-component='SubjectTag'], a[data-component='Tag'], a[data-component='CombinedTag']").Each(func(j int, a *goquery.Selection) {
+			clone := a.Clone()
+			clone.Find("[data-component=\"ScreenReaderOnly\"], [data-component=\"fallbackText\"], [data-component=\"ScreenReaderTimestamp\"]").Remove()
+			text := strings.TrimSpace(clone.Text())
+			if text != "" && !seenCategories[text] {
+				seenCategories[text] = true
+				categories = append(categories, text)
+			}
+		})
 
 		// Add article to RSS items
 		items = append(items, Item{
@@ -149,7 +157,7 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 			Description: description,
 			PubDate:     pubDate,
 			GUID:        linkUrl.String(),
-			Category:    category,
+			Categories:  categories,
 		})
 	}
 
