@@ -139,11 +139,13 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 
 		// Extract category tags
 		var categories []string
+		seenCategories := make(map[string]bool)
 		s.Find("a[data-component='SubjectTag'], a[data-component='Tag'], a[data-component='CombinedTag']").Each(func(j int, a *goquery.Selection) {
 			clone := a.Clone()
 			clone.Find("[data-component=\"ScreenReaderOnly\"], [data-component=\"fallbackText\"], [data-component=\"ScreenReaderTimestamp\"]").Remove()
 			text := strings.TrimSpace(clone.Text())
-			if text != "" {
+			if text != "" && !seenCategories[text] {
+				seenCategories[text] = true
 				categories = append(categories, text)
 			}
 		})
