@@ -30,16 +30,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
+
+      - name: Install mdtohtml
+        run: go install github.com/gomarkdown/mdtohtml@latest
 
       - name: Build site and RSS feed
         run: |
@@ -48,7 +46,7 @@ jobs:
           go run ./cmd/abcjustinrss -output public/abcjustinrss.xml
           # Convert README to HTML with boilerplate
           echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ABC Just In RSS</title><link rel="alternate" type="application/rss+xml" title="RSS" href="abcjustinrss.xml"></head><body>' > public/index.html
-          npx -y marked -i readme.md >> public/index.html
+          mdtohtml readme.md >> public/index.html
           echo '</body></html>' >> public/index.html
 
       - name: Setup Pages
