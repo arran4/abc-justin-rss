@@ -1,61 +1,63 @@
-name: Generate RSS and Publish to Pages
+name: Deploy to GitHub Pages
 
 on:
+  # Daily schedule (just after the usual release date - 21:00 UTC is early morning in Australia)
   schedule:
-    # 8-9 PM AEST is 10-11 AM UTC. 10:30 AM UTC -> 8:30 PM AEST
-    - cron: '30 10 * * *'
+    - cron: '0 21 * * *'
+  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  generate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - name: Build abcjustinrss
-        run: go build -o abcjustinrss ./cmd/abcjustinrss
-
-      - name: Create output directory
-        run: mkdir -p public
-
-      - name: Generate RSS
-        run: ./abcjustinrss -output public/abcjustinrss.xml
-
-      - name: Convert Markdown to HTML
-        run: |
-          npx marked readme.md > public/index.html
-          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>ABC Just In RSS</title><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>' > temp.html
-          cat public/index.html >> temp.html
-          echo '</body></html>' >> temp.html
-          mv temp.html public/index.html
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: public
-
+  # Single deploy job since we're just building and deploying
   deploy:
-    needs: generate
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install mdtohtml
+        run: go install github.com/gomarkdown/mdtohtml@latest
+
+      - name: Build site and RSS feed
+        run: |
+          mkdir -p public
+          # Generate RSS feed
+          go run ./cmd/abcjustinrss -output public/abcjustinrss.xml
+          # Convert README to HTML with boilerplate
+          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ABC Just In RSS</title><link rel="alternate" type="application/rss+xml" title="RSS" href="abcjustinrss.xml"></head><body>' > public/index.html
+          mdtohtml readme.md >> public/index.html
+          echo '</body></html>' >> public/index.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: 'public'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
