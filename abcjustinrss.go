@@ -128,9 +128,21 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 			continue
 		}
 
-		// Extract relative time (e.g., "15 minutes ago")
-		relativeTime := strings.TrimSpace(s.Find("time").Text())
-		pubDate := DeducePublicationDate(relativeTime)
+		// Extract pubDate
+		var pubDate string
+		dateTime, exists := s.Find("time[datetime]").Attr("datetime")
+		if exists {
+			t, err := time.Parse(time.RFC3339, dateTime)
+			if err == nil {
+				pubDate = t.Format(time.RFC1123)
+			}
+		}
+
+		if pubDate == "" {
+			// Fallback: Extract relative time (e.g., "15 minutes ago")
+			relativeTime := strings.TrimSpace(s.Find("time").Text())
+			pubDate = DeducePublicationDate(relativeTime)
+		}
 
 		linkUrl, err := baseUrl.Parse(link)
 		if err != nil {
