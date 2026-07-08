@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  # Daily schedule (just after the usual release date - 21:00 UTC is early morning in Australia)
+  # Hourly schedule
   schedule:
-    - cron: '0 21 * * *'
+    - cron: '0 * * * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
