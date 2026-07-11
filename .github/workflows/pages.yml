@@ -1,27 +1,22 @@
-name: Deploy to GitHub Pages
+name: Deploy RSS and Markdown to GitHub Pages
 
 on:
-  # Hourly schedule
   schedule:
-    - cron: '0 * * * *'
-  # Allows you to run this workflow manually from the Actions tab
+    # 8:30 PM AEST is 10:30 AM UTC
+    - cron: '30 10 * * *'
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just building and deploying
-  deploy:
+  build-and-deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -30,24 +25,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
-          cache: true
+          go-version-file: 'go.mod'
+          check-latest: true
 
-      - name: Install mdtohtml
-        run: go install github.com/gomarkdown/mdtohtml@latest
-
-      - name: Build site and RSS feed
+      - name: Build site directory
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mkdir -p public
+          mkdir -p public/rss
+          # Generate index.html from readme.md using a Go-based markdown to HTML converter
+          gh release download -R arran4/fork-mdtohtml -p "*linux_amd64.tar.gz" -O - | tar xvz -C /tmp
+          /tmp/mdtohtml readme.md
+          echo '<!DOCTYPE html><html><head><title>ABC Just In RSS</title></head>' > public/index.html
+          cat readme.html >> public/index.html
+          echo '</html>' >> public/index.html
           # Generate RSS feed
-          go run ./cmd/abcjustinrss -output public/abcjustinrss.xml
-          # Convert README to HTML with boilerplate
-          echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ABC Just In RSS</title><link rel="alternate" type="application/rss+xml" title="RSS" href="abcjustinrss.xml"></head><body>' > public/index.html
-          mdtohtml readme.md >> public/index.html
-          echo '</body></html>' >> public/index.html
+          go run ./cmd/abcjustinrss -output public/rss/abcjustinrss.xml
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -55,8 +51,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
-          path: 'public'
+          path: './public'
 
       - name: Deploy to GitHub Pages
         id: deployment
