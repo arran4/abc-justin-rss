@@ -2,8 +2,8 @@ name: Deploy RSS and Markdown to GitHub Pages
 
 on:
   schedule:
-    # Hourly schedule
-    - cron: '0 * * * *'
+    # 5 AM AEST on the 2nd of each month (which corresponds to 7 PM UTC on the 1st of the month)
+    - cron: '0 19 1 * *'
   workflow_dispatch:
 
 permissions:
