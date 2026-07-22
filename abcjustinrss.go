@@ -156,9 +156,24 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 			clone := a.Clone()
 			clone.Find("[data-component=\"ScreenReaderOnly\"], [data-component=\"fallbackText\"], [data-component=\"ScreenReaderTimestamp\"]").Remove()
 			text := strings.TrimSpace(clone.Text())
-			if text != "" && !seenCategories[text] {
-				seenCategories[text] = true
-				categories = append(categories, text)
+			if text != "" {
+				isCombined := a.AttrOr("data-component", "") == "CombinedTag" || a.HasClass("CombinedTag")
+				if isCombined {
+					text = strings.ReplaceAll(text, " and ", ", ")
+					parts := strings.Split(text, ", ")
+					for _, p := range parts {
+						p = strings.TrimSpace(p)
+						if p != "" && !seenCategories[p] {
+							seenCategories[p] = true
+							categories = append(categories, p)
+						}
+					}
+				} else {
+					if !seenCategories[text] {
+						seenCategories[text] = true
+						categories = append(categories, text)
+					}
+				}
 			}
 		})
 
