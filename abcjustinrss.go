@@ -162,6 +162,7 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 					// Iterate through child nodes to extract separate tags,
 					// ignoring ", " or " and " text nodes used as separators.
 					var extractedTags []string
+					isPureText := true
 					clone.Contents().Each(func(k int, n *goquery.Selection) {
 						if goquery.NodeName(n) == "#text" {
 							t := strings.TrimSpace(n.Text())
@@ -172,6 +173,7 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 								extractedTags = append(extractedTags, t)
 							}
 						} else {
+							isPureText = false
 							t := strings.TrimSpace(n.Text())
 							if t != "" {
 								extractedTags = append(extractedTags, t)
@@ -185,7 +187,7 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 					}
 
 					// Fallback for pure text strings like "Tag1, Tag2 and Tag3"
-					if len(extractedTags) == 1 && strings.Contains(extractedTags[0], " and ") {
+					if isPureText && len(extractedTags) == 1 && strings.Contains(extractedTags[0], " and ") {
 						tStr := strings.ReplaceAll(extractedTags[0], " and ", ", ")
 						parts := strings.Split(tStr, ", ")
 						extractedTags = []string{}
