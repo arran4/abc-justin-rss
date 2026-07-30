@@ -159,9 +159,11 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 			if text != "" {
 				isCombined := a.AttrOr("data-component", "") == "CombinedTag" || a.HasClass("CombinedTag")
 				if isCombined {
-					// Iterate through child nodes to extract separate tags,
-					// ignoring ", " or " and " text nodes used as separators.
 					var extractedTags []string
+
+					// Always include the combined text
+					extractedTags = append(extractedTags, text)
+
 					isPureText := true
 					clone.Contents().Each(func(k int, n *goquery.Selection) {
 						if goquery.NodeName(n) == "#text" {
@@ -181,16 +183,10 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 						}
 					})
 
-					// If no specific tags were extracted from children structure, use the full text
-					if len(extractedTags) == 0 {
-						extractedTags = append(extractedTags, text)
-					}
-
-					// Fallback for pure text strings like "Tag1, Tag2 and Tag3"
-					if isPureText && len(extractedTags) == 1 && strings.Contains(extractedTags[0], " and ") {
-						tStr := strings.ReplaceAll(extractedTags[0], " and ", ", ")
-						parts := strings.Split(tStr, ", ")
-						extractedTags = []string{}
+					// Split text if it contains "," or " and "
+					if isPureText && (strings.Contains(text, ",") || strings.Contains(text, " and ")) {
+						tStr := strings.ReplaceAll(text, " and ", ",")
+						parts := strings.Split(tStr, ",")
 						for _, p := range parts {
 							p = strings.TrimSpace(p)
 							if p != "" {
