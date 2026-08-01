@@ -73,3 +73,29 @@ func TestExtractPubDate(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractCategories(t *testing.T) {
+	html := `<article>
+		<a data-component="Tag" href="/news/topic/fishing-and-aquaculture">Fishing and Aquaculture Industry</a>
+	</article>`
+
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		t.Fatalf("Failed to parse HTML: %v", err)
+	}
+
+	s := doc.Find("article").First()
+
+	categories := extractTags(s)
+
+	expected := []string{"Fishing and Aquaculture Industry", "Fishing", "Aquaculture Industry"}
+	if len(categories) != len(expected) {
+		t.Fatalf("expected %d categories, got %d: %v", len(expected), len(categories), categories)
+	}
+
+	for i, expectedCat := range expected {
+		if categories[i] != expectedCat {
+			t.Errorf("expected category %q at index %d, got %q", expectedCat, i, categories[i])
+		}
+	}
+}
