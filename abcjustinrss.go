@@ -150,65 +150,7 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 		}
 
 		// Extract category tags
-		var categories []string
-		seenCategories := make(map[string]bool)
-		s.Find("a[data-component='SubjectTag'], a[data-component='Tag'], a[data-component='CombinedTag']").Each(func(j int, a *goquery.Selection) {
-			clone := a.Clone()
-			clone.Find("[data-component=\"ScreenReaderOnly\"], [data-component=\"fallbackText\"], [data-component=\"ScreenReaderTimestamp\"]").Remove()
-			text := strings.TrimSpace(clone.Text())
-			if text != "" {
-				isCombined := a.AttrOr("data-component", "") == "CombinedTag" || a.HasClass("CombinedTag")
-				if isCombined {
-					var extractedTags []string
-
-					// Always include the combined text
-					extractedTags = append(extractedTags, text)
-
-					isPureText := true
-					clone.Contents().Each(func(k int, n *goquery.Selection) {
-						if goquery.NodeName(n) == "#text" {
-							t := strings.TrimSpace(n.Text())
-							if t == "," || t == ", " || t == "and" {
-								return
-							}
-							if t != "" {
-								extractedTags = append(extractedTags, t)
-							}
-						} else {
-							isPureText = false
-							t := strings.TrimSpace(n.Text())
-							if t != "" {
-								extractedTags = append(extractedTags, t)
-							}
-						}
-					})
-
-					// Split text if it contains "," or " and "
-					if isPureText && (strings.Contains(text, ",") || strings.Contains(text, " and ")) {
-						tStr := strings.ReplaceAll(text, " and ", ",")
-						parts := strings.Split(tStr, ",")
-						for _, p := range parts {
-							p = strings.TrimSpace(p)
-							if p != "" {
-								extractedTags = append(extractedTags, p)
-							}
-						}
-					}
-
-					for _, p := range extractedTags {
-						if p != "" && !seenCategories[p] {
-							seenCategories[p] = true
-							categories = append(categories, p)
-						}
-					}
-				} else {
-					if !seenCategories[text] {
-						seenCategories[text] = true
-						categories = append(categories, text)
-					}
-				}
-			}
-		})
+		categories := extractTags(s)
 
 		// Add article to RSS items
 		items = append(items, Item{
@@ -232,4 +174,67 @@ func FetchAndParseNewsToRSS() (RSS, error) {
 		},
 	}
 	return rss, nil
+}
+
+func extractTags(s *goquery.Selection) []string {
+	var categories []string
+	seenCategories := make(map[string]bool)
+	s.Find("a[data-component='SubjectTag'], a[data-component='Tag'], a[data-component='CombinedTag']").Each(func(j int, a *goquery.Selection) {
+		clone := a.Clone()
+		clone.Find("[data-component=\"ScreenReaderOnly\"], [data-component=\"fallbackText\"], [data-component=\"ScreenReaderTimestamp\"]").Remove()
+		text := strings.TrimSpace(clone.Text())
+		if text != "" {
+			isCombined := a.AttrOr("data-component", "") == "CombinedTag" || a.HasClass("CombinedTag") || strings.Contains(text, " and ") || strings.Contains(text, ",")
+			if isCombined {
+				var extractedTags []string
+
+				// Always include the combined text
+				extractedTags = append(extractedTags, text)
+
+				isPureText := true
+				clone.Contents().Each(func(k int, n *goquery.Selection) {
+					if goquery.NodeName(n) == "#text" {
+						t := strings.TrimSpace(n.Text())
+						if t == "," || t == ", " || t == "and" {
+							return
+						}
+						if t != "" {
+							extractedTags = append(extractedTags, t)
+						}
+					} else {
+						isPureText = false
+						t := strings.TrimSpace(n.Text())
+						if t != "" {
+							extractedTags = append(extractedTags, t)
+						}
+					}
+				})
+
+				// Split text if it contains "," or " and "
+				if isPureText && (strings.Contains(text, ",") || strings.Contains(text, " and ")) {
+					tStr := strings.ReplaceAll(text, " and ", ",")
+					parts := strings.Split(tStr, ",")
+					for _, p := range parts {
+						p = strings.TrimSpace(p)
+						if p != "" {
+							extractedTags = append(extractedTags, p)
+						}
+					}
+				}
+
+				for _, p := range extractedTags {
+					if p != "" && !seenCategories[p] {
+						seenCategories[p] = true
+						categories = append(categories, p)
+					}
+				}
+			} else {
+				if !seenCategories[text] {
+					seenCategories[text] = true
+					categories = append(categories, text)
+				}
+			}
+		}
+	})
+	return categories
 }
